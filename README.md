@@ -8,7 +8,7 @@ To build, you should use the [asconfig.json](https://github.com/friedkeenan/tfm-
 
 If you wish to save yourself the hassle, then there is also a pre-built SWF in the [releases](https://github.com/friedkeenan/tfm-secrets-leaker/releases) of this repo.
 
-## Using
+## Usage
 
 When running the built SWF file, it will `trace` out the obtained secrets. These can be viewed in something like [ffdec](https://github.com/jindrapetrik/jpexs-decompiler), though a helpful `leak-secrets.py` script is also provided to get the output using the standalone debug projector, used like so:
 
