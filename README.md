@@ -33,4 +33,4 @@ These secrets include:
 - The auth key.
     - After the client sends the handshake packet to the server, the server then responds with a packet containing an "auth token". This is an integer that is used again when the client sends the login packet. The client XOR's the auth token with the hardcoded "auth key", resulting in a ciphered token, which is then sent to the server in the login packet.
 - The packet key sources.
-    - Certain packets within Transformice's network protocol are encrypted, for example the login packet. The particular cipher varies per packet, but the keys used are derived from an array of integers called the "packet key sources". These integers are combined with a key name, a string (e.g. "identification"), to obtain the actual key used to encrpyt a packet.
+    - Certain packets within Transformice's network protocol are encrypted, for example the login packet. The particular cipher varies per packet, but the keys used are derived from an array of integers called the "packet key sources". These integers are combined with a key name, a string (e.g. "identification"), to obtain the actual key used to encrypt a packet.
