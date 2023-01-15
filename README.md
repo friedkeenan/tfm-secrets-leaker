@@ -6,7 +6,7 @@ A utility for obtaining the hardcoded secrets within the Transformice client.
 
 To build, you should use the [asconfig.json](https://github.com/friedkeenan/tfm-secrets-leaker/blob/main/asconfig.json) file to compile the `TFMSecretsLeaker.swf` file. This can be done with [vscode-as3mxml](https://github.com/BowlerHatLLC/vscode-as3mxml) or [asconfigc](https://www.npmjs.com/package/asconfigc).
 
-If you wish to save yourself the hassle, then there is also a pre-built SWF in the [releases](https://github.com/friedkeenan/tfm-secrets-leaker) of this repo.
+If you wish to save yourself the hassle, then there is also a pre-built SWF in the [releases](https://github.com/friedkeenan/tfm-secrets-leaker/releases) of this repo.
 
 ## Using
 
