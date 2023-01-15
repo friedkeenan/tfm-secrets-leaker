@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "source-path": [
+            "src"
+        ],
+
+        "output": "bin/TFMSecretsLeaker.swf",
+
+        /* Same as Transformice. */
+        "swf-version": 22,
+        "default-size": {
+            "width":  800,
+            "height": 600
+        }
+    },
+
+    "mainClass": "TFMSecretsLeaker"
+}
