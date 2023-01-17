@@ -144,6 +144,9 @@ package {
                 return;
             }
 
+            /* Close the socket to better avoid any connection to the server. */
+            socket.close();
+
             this.removeEventListener(Event.ENTER_FRAME, this.try_replace_socket);
 
             /*

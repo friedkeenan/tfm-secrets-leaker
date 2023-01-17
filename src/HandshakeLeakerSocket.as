@@ -4,8 +4,7 @@ package {
 
     public class HandshakeLeakerSocket extends Socket {
         private var flush_callback: Function;
-
-        public var written_bytes: ByteArray = new ByteArray();
+        private var written_bytes:  ByteArray = new ByteArray();
 
         public function HandshakeLeakerSocket(flush_callback: Function) {
             this.flush_callback = flush_callback;
