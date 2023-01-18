@@ -26,6 +26,8 @@ Transformice's networking protocol utilizes several hardcoded, frequently-changi
 
 These secrets include:
 
+- The server address.
+    - This is the address of the server that the client connects to. This changes and has changed, but infrequently enough that I think it could feasibly be hardcoded and manually rediscovered when it does change. The port the client connects to is a random choice between `11801`, `12801`, `13801`, and `14801` (if the first choice does not result in a successful connection, another is randomly chosen, and so on). I do not think there is a real way for this utility to acquire those ports, though they should not ever change.
 - The game version.
     - This is what the game displays in the bottom right corner of the login screen, showing text like `1.740`. The game version that this reports is the `740` component of that, and is sent in the handshake packet that the client sends to the server. This does not change as often as the other secrets do.
 - The connection token.

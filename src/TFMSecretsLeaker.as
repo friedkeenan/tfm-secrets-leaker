@@ -15,6 +15,8 @@ package {
         private var final_loader: Loader;
         private var connection_class_info: *;
 
+        private var server_address: String;
+
         public function TFMSecretsLeaker() {
             super();
 
@@ -78,6 +80,20 @@ package {
             return null;
         }
 
+        private static function get_address_prop_name(description: XML) : String {
+            for each (var variable: * in description.elements("factory").elements("variable")) {
+                /*
+                    NOTE: There are two non-static properties which
+                    are strings, but they both hold the same value.
+                */
+                if (variable.attribute("type") == "String") {
+                    return variable.attribute("name");
+                }
+            }
+
+            return null;
+        }
+
         private function get_connection_class_info(event: Event) : void {
             var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
 
@@ -115,11 +131,13 @@ package {
                     continue;
                 }
 
-                var instance_name: * = get_connection_instance_name(description);
+                var address_prop_name: * = get_address_prop_name(description);
+                var instance_name:     * = get_connection_instance_name(description);
 
                 this.connection_class_info = {
                     klass: klass,
-                    socket_prop_name:  socket_prop_name,
+                    socket_prop_name: socket_prop_name,
+                    address_prop_name: address_prop_name,
                     instance_name: instance_name
                 };
 
@@ -148,6 +166,8 @@ package {
             socket.close();
 
             this.removeEventListener(Event.ENTER_FRAME, this.try_replace_socket);
+
+            this.server_address = instance[this.connection_class_info.address_prop_name];
 
             /*
                 Replace the connection's socket with our own socket
@@ -257,6 +277,7 @@ package {
             var auth_key:           * = this.get_auth_key(document);
             var packet_key_sources: * = this.get_packet_key_sources(document);
 
+            trace("Server Address:    ", this.server_address);
             trace("Game Version:      ", handshake_secrets.game_version);
             trace("Connection Token:  ", handshake_secrets.connection_token);
             trace("Auth Key:          ", auth_key);
