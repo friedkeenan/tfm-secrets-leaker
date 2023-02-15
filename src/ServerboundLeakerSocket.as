@@ -2,15 +2,15 @@ package {
     import flash.net.Socket;
     import flash.utils.ByteArray;
 
-    public class HandshakeLeakerSocket extends Socket {
+    public class ServerboundLeakerSocket extends Socket {
         private var flush_callback: Function;
         private var written_bytes:  ByteArray = new ByteArray();
 
-        public function HandshakeLeakerSocket(flush_callback: Function) {
+        public function ServerboundLeakerSocket(flush_callback: Function) {
             this.flush_callback = flush_callback;
         }
 
-        /* NOTE: We only override the methods that we need to in order to get to the handshake packet. */
+        /* NOTE: We only override the methods that we need to for serverbound packets. */
 
         public override function get connected() : Boolean {
             /* Just always report that we're connected. Makes things faster too. */
@@ -22,8 +22,8 @@ package {
             /*
                 NOTE: We clear the buffer because we don't need the
                 length and fingerprint data, just the body of the
-                handshake packet, which is the second (and last)
-                call to this method.
+                packet, which is the second (and last) call to this
+                method before the socket is flushed.
             */
             this.written_bytes.clear();
             this.written_bytes.writeBytes(bytes, offset, length);
