@@ -10,6 +10,7 @@ package {
     import flash.utils.describeType;
     import flash.system.fscommand;
     import flash.utils.ByteArray;
+    import flash.system.Capabilities;
 
     public class TFMSecretsLeaker extends Sprite {
         /*
@@ -37,8 +38,10 @@ package {
 
         private var final_loader: Loader;
         private var connection_class_info: *;
+        private var logging_class_info: *;
 
         private var server_address: String;
+        private var main_ports:     Array = new Array();
 
         private var handshake_secrets: * = null;
 
@@ -75,7 +78,99 @@ package {
         }
 
         private function game_code_loaded(event: Event) : void {
+            this.addEventListener(Event.ENTER_FRAME, this.get_logging_class_info);
             this.addEventListener(Event.ENTER_FRAME, this.get_connection_class_info);
+        }
+
+        private static function is_logging_class(klass: Class, description: XML) : Boolean {
+            /*
+                The logging class is the only class which inherits
+                from 'Sprite' and has a static string variable with
+                certain font names.
+            */
+
+            var extending: * = description.elements("factory").elements("extendsClass");
+            if (extending.length() <= 0) {
+                return false;
+            }
+
+            if (extending[0].attribute("type") != "flash.display::Sprite") {
+                return false;
+            }
+
+            var expected_font_name: * = "Lucida Console";
+            if (Capabilities.os.toLowerCase().indexOf("linux") != -1) {
+                expected_font_name = "Liberation Mono";
+            } else if (Capabilities.os.indexOf("Mac") != -1) {
+                expected_font_name = "Courier New";
+            }
+
+            for each (var variable :* in description.elements("variable")) {
+                if (variable.attribute("type") != "String") {
+                    continue;
+                }
+
+                var object: * = klass[variable.attribute("name")];
+                if (object == expected_font_name) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static function get_logging_instance_prop_name(klass: Class, description: XML) : String {
+            var class_name: * = description.attribute("name");
+
+            for each (var variable: * in description.elements("variable")) {
+                if (variable.attribute("type") == class_name) {
+                    return variable.attribute("name");
+                }
+            }
+
+            return null;
+        }
+
+        private static function get_logging_message_prop_name(klass: Class, description: XML) : String {
+            for each (var variable: * in description.elements("factory").elements("variable")) {
+                if (variable.attribute("type") == "String") {
+                    return variable.attribute("name");
+                }
+            }
+
+            return null;
+        }
+
+        private function get_logging_class_info(event: Event) : void {
+            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+
+            if (game.numChildren == 0) {
+                return;
+            }
+
+            this.removeEventListener(Event.ENTER_FRAME, this.get_logging_class_info);
+
+            var domain: * = game.contentLoaderInfo.applicationDomain;
+            for each(var class_name: String in domain.getQualifiedDefinitionNames()) {
+                var klass: * = domain.getDefinition(class_name);
+                if (klass.constructor != Class) {
+                    continue;
+                }
+
+                var description: * = describeType(klass);
+
+                if (!is_logging_class(klass, description)) {
+                    continue;
+                }
+
+                this.logging_class_info = {
+                    klass:              klass,
+                    instance_prop_name: get_logging_instance_prop_name(klass, description),
+                    message_prop_name:  get_logging_message_prop_name(klass, description)
+                };
+
+                return;
+            }
         }
 
         private static function get_socket_property(description: XML) : String {
@@ -119,6 +214,18 @@ package {
             return null;
         }
 
+        private static function get_possible_ports_properties(description: XML) : Array {
+            var possible_names: * = new Array();
+
+            for each (var variable: * in description.elements("factory").elements("variable")) {
+                if (variable.attribute("type") == "Array") {
+                    possible_names.push(variable.attribute("name"));
+                }
+            }
+
+            return possible_names;
+        }
+
         private function get_connection_class_info(event: Event) : void {
             var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
 
@@ -156,14 +263,16 @@ package {
                     continue;
                 }
 
-                var address_prop_name: * = get_address_prop_name(description);
-                var instance_name:     * = get_connection_instance_name(description);
+                var address_prop_name:         * = get_address_prop_name(description);
+                var possible_ports_prop_names: * = get_possible_ports_properties(description);
+                var instance_name:             * = get_connection_instance_name(description);
 
                 this.connection_class_info = {
-                    klass: klass,
-                    socket_prop_name: socket_prop_name,
-                    address_prop_name: address_prop_name,
-                    instance_name: instance_name
+                    klass:                     klass,
+                    socket_prop_name:          socket_prop_name,
+                    address_prop_name:         address_prop_name,
+                    possible_ports_prop_names: possible_ports_prop_names,
+                    instance_name:             instance_name
                 };
 
                 this.addEventListener(Event.ENTER_FRAME, this.try_replace_socket);
@@ -193,6 +302,30 @@ package {
             this.removeEventListener(Event.ENTER_FRAME, this.try_replace_socket);
 
             this.server_address = instance[this.connection_class_info.address_prop_name];
+
+            for each (var ports_name: * in this.connection_class_info.possible_ports_prop_names) {
+                var possible_ports: * = instance[ports_name];
+                if (possible_ports.length <= 0 || possible_ports[0] == null) {
+                    continue;
+                }
+
+                for each (var port: * in possible_ports) {
+                    this.main_ports.push(port);
+                }
+
+                break;
+            }
+
+            var logging_instance: * = this.logging_class_info.klass[this.logging_class_info.instance_prop_name];
+
+            var message: * = logging_instance[this.logging_class_info.message_prop_name];
+
+            /*
+                NOTE: We don't *need* to use 'parseInt' since we're
+                only tracing it, but it makes me feel better.
+            */
+            var used_port: * = parseInt(message.substring(message.lastIndexOf("(") + 1, message.lastIndexOf(")")));
+            this.main_ports.push(used_port);
 
             /*
                 Replace the connection's socket with our own socket
@@ -462,6 +595,7 @@ package {
             }
 
             trace("Server Address:              ", this.server_address);
+            trace("Server Ports:                ", this.main_ports);
             trace("Game Version:                ", this.handshake_secrets.game_version);
             trace("Connection Token:            ", this.handshake_secrets.connection_token);
             trace("Auth Key:                    ", auth_key);
