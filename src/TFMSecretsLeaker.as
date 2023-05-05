@@ -119,7 +119,7 @@ package {
             return false;
         }
 
-        private static function get_logging_instance_prop_name(klass: Class, description: XML) : String {
+        private static function get_logging_instance_prop_name(description: XML) : String {
             var class_name: * = description.attribute("name");
 
             for each (var variable: * in description.elements("variable")) {
@@ -131,7 +131,7 @@ package {
             return null;
         }
 
-        private static function get_logging_message_prop_name(klass: Class, description: XML) : String {
+        private static function get_logging_message_prop_name(description: XML) : String {
             for each (var variable: * in description.elements("factory").elements("variable")) {
                 if (variable.attribute("type") == "String") {
                     return variable.attribute("name");
@@ -165,8 +165,8 @@ package {
 
                 this.logging_class_info = {
                     klass:              klass,
-                    instance_prop_name: get_logging_instance_prop_name(klass, description),
-                    message_prop_name:  get_logging_message_prop_name(klass, description)
+                    instance_prop_name: get_logging_instance_prop_name(description),
+                    message_prop_name:  get_logging_message_prop_name(description)
                 };
 
                 return;
