@@ -9,19 +9,25 @@ from pathlib import Path
 def config_file_path():
     return Path("~/mm.cfg").expanduser()
 
-def log_file_path():
+def flash_player_dir():
     path = None
     match sys.platform:
         case "linux":
-            path = Path("~/.macromedia/Flash_Player/Logs/flashlog.txt")
+            path = Path("~/.macromedia/Flash_Player")
 
         case "win32":
-            path = Path("~/AppData/Roaming/Macromedia/Flash Player/Logs/flashlog.txt")
+            path = Path("~/AppData/Roaming/Macromedia/Flash Player")
 
         case "darwin":
-            path = Path("~/Library/Preferences/Macromedia/Flash Player/Logs/flashlog.txt")
+            path = Path("~/Library/Preferences/Macromedia/Flash Player")
 
     return path.expanduser()
+
+def log_file_path():
+    return flash_player_dir() / "Logs/flashlog.txt"
+
+def trust_file_path():
+    return flash_player_dir() / "#Security/FlashPlayerTrust/TFMSecretsLeaker.cfg"
 
 CONFIG_CONTENTS = "TraceOutputFileEnable=1"
 
@@ -36,9 +42,29 @@ def cleanup_configs(config, backup_config):
         if backup_config is not None:
             backup_config.rename(config)
 
-def get_secrets(leaker_path):
+def get_secrets(leaker_url):
     if sys.platform not in ("linux", "win32", "darwin"):
         raise ValueError(f"Unsupported platform: {sys.platform}")
+
+    if "://" not in leaker_url:
+        if "?" in leaker_url:
+            leaker_url, parameters = leaker_url.split("?", 1)
+
+            parameters = f"?{parameters}"
+        else:
+            parameters = ""
+
+        leaker_url = Path(leaker_url).absolute()
+
+        # Fortoresse has no policy file for cross-domain
+        # loading, and so to support it we must manually
+        # tell the standalone player to trust us.
+        trust_file = trust_file_path()
+        trust_file.parent.mkdir(parents=True, exist_ok=True)
+        with trust_file.open("w") as f:
+            f.write(str(leaker_url.parent))
+
+        leaker_url = f"file://{leaker_url}{parameters}"
 
     config = config_file_path()
 
@@ -55,7 +81,7 @@ def get_secrets(leaker_path):
 
     with cleanup_configs(config, backup_config):
         try:
-            subprocess.run(["flashplayerdebugger", leaker_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["flashplayerdebugger", leaker_url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         except FileNotFoundError:
             print(
@@ -71,8 +97,8 @@ def get_secrets(leaker_path):
     with log.open() as f:
         return f.read()
 
-def main(leaker_path):
-    print(get_secrets(leaker_path), end="")
+def main(leaker_url):
+    print(get_secrets(leaker_url), end="")
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:

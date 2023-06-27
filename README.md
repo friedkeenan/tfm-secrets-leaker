@@ -18,7 +18,7 @@ When running the built SWF file, it will `trace` out the obtained secrets. These
 
 When running the SWF, a window will pop up for a short moment, seem to begin to load the game, and then exit. This is normal.
 
-Unfortunately this is not currently compatible with [Ruffle](https://github.com/ruffle-rs/ruffle/) as it does not currently support Transformice.
+Unfortunately this is not currently compatible with [Ruffle](https://github.com/ruffle-rs/ruffle/) as it does not currently implement `fscommand("quit")`.
 
 ## The Secrets
 
@@ -42,3 +42,31 @@ These secrets include:
     - Shortly after the handshake sequence has been completed by the client and server, the server will send a packet to the client to make sure that the client is official and otherwise proper (i.e. not a bot). This packet contains a "verification token" (an integer) which the client will then use in its response. The client will respond with a ciphered packet using the XXTEA algorithm with the verification token converted to a string as the name for the key. The (plaintext) packet data will begin with the verification token, and then some semi-random, hardcoded fields, with the verification token thrown in again in the midst of it. This does not seem to change as often as the other secrets do, but it does change.
 
         What this reports is a hex string representing a string of bytes of the plaintext body of this packet (in Python, something you could use `bytes.fromhex` on). In place of where the verification token should go, `aabbccdd` is used, and should be replaced with the actual packed verification token.
+
+## Other Games
+
+Other Atelier 801 games have very similar structures to Transformice, and so this utility is able to also support the following games:
+
+- Transformice
+- Dead Maze
+- Bouboum
+- Nekodancer
+- Fortoresse
+
+Games other than Transformice do not have a client verification template, and thus none will be traced out.
+
+To obtain the secrets to a particular game, its name should be supplied to the `game` loader parameter. For instance, here is how you would do so using the `leak-secrets.py` script:
+
+```
+./leak-secrets.py path/to/TFMSecretsLeaker.swf?game=transformice
+
+./leak-secrets.py path/to/TFMSecretsLeaker.swf?game=deadmaze
+
+./leak-secrets.py path/to/TFMSecretsLeaker.swf?game=bouboum
+
+./leak-secrets.py path/to/TFMSecretsLeaker.swf?game=nekodancer
+
+./leak-secrets.py path/to/TFMSecretsLeaker.swf?game=fortoresse
+```
+
+If no `game` parameter is supplied, then the utility will default to leaking Transformice's secrets.
