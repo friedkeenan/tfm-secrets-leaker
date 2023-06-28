@@ -48,13 +48,15 @@ package leakers {
         private var packet_key_sources: Array;
 
         private var game_url: String;
-        private var has_client_verification_template: Boolean;
+        private var has_verification: Boolean;
+        private var is_verification_ciphered: Boolean;
 
-        public function Leaker(game_url: String, has_client_verification_template: Boolean = false) {
+        public function Leaker(game_url: String, has_verification: Boolean = false, is_verification_ciphered: Boolean = false) {
             super();
 
             this.game_url = game_url;
-            this.has_client_verification_template = has_client_verification_template;
+            this.has_verification = has_verification;
+            this.is_verification_ciphered = is_verification_ciphered;
         }
 
         public function leak_secrets() : void {
@@ -595,7 +597,7 @@ package leakers {
                 this.auth_key           = this.get_auth_key(document);
                 this.packet_key_sources = this.get_packet_key_sources(document);
 
-                if (!this.has_client_verification_template) {
+                if (!this.has_verification) {
                     this.trace_secrets_and_quit();
 
                     return;
@@ -621,13 +623,15 @@ package leakers {
             data.readUnsignedByte();
             data.readUnsignedByte();
 
-            var key: * = key_from_name(VERIFCATION_TOKEN + "", this.packet_key_sources);
+            if (this.is_verification_ciphered) {
+                var key: * = key_from_name(VERIFCATION_TOKEN + "", this.packet_key_sources);
 
-            var deciphered: * = xxtea_decipher(data, key);
+                data = xxtea_decipher(data, key);
+            }
 
             var client_verification_template: * = "";
-            while (deciphered.bytesAvailable) {
-                var byte: * = deciphered.readUnsignedByte();
+            while (data.bytesAvailable) {
+                var byte: * = data.readUnsignedByte();
 
                 if (byte < 0x10) {
                     client_verification_template += "0";
