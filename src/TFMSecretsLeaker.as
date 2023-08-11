@@ -19,6 +19,8 @@ package {
         }
 
         public function TFMSecretsLeaker() {
+            super();
+
             var game: * = root.loaderInfo.parameters.game as String;
 
             var leaker: * = null;

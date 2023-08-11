@@ -13,7 +13,7 @@ If you wish to save yourself the hassle, then there is also a pre-built SWF in t
 When running the built SWF file, it will `trace` out the obtained secrets. These can be viewed in something like [ffdec](https://github.com/jindrapetrik/jpexs-decompiler), though a helpful `leak-secrets.py` script is also provided to get the output using the standalone debug projector, used like so:
 
 ```
-./leak_secrets.py <path/to/TFMSecretsLeaker.swf>
+./leak-secrets.py <path/to/TFMSecretsLeaker.swf>
 ```
 
 When running the SWF, a window will pop up for a short moment, seem to begin to load the game, and then exit. This is normal.
