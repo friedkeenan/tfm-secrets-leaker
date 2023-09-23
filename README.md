@@ -53,9 +53,7 @@ Other Atelier 801 games have very similar structures to Transformice, and so thi
 - Nekodancer
 - Fortoresse
 
-Dead Maze has a client verification template, however it should not be ciphered when used. Additionally it includes the bottom 16 bits of the `getTimer()` function in the data, but I don't believe that matters for our purposes.
-
-The rest of the games do not have client verification templates, and thus none will be traced out.
+Transformice and Dead Maze are the only games that have client verification templates. And so for the others, no client verification template will be traced out.
 
 To obtain the secrets to a particular game, its name should be supplied to the `game` loader parameter. For instance, here is how you would do so using the `leak-secrets.py` script:
 

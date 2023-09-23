@@ -49,14 +49,12 @@ package leakers {
 
         private var game_url: String;
         private var has_verification: Boolean;
-        private var is_verification_ciphered: Boolean;
 
-        public function Leaker(game_url: String, has_verification: Boolean = false, is_verification_ciphered: Boolean = false) {
+        public function Leaker(game_url: String, has_verification: Boolean = false) {
             super();
 
             this.game_url = game_url;
             this.has_verification = has_verification;
-            this.is_verification_ciphered = is_verification_ciphered;
         }
 
         public function leak_secrets() : void {
@@ -631,11 +629,9 @@ package leakers {
             data.readUnsignedByte();
             data.readUnsignedByte();
 
-            if (this.is_verification_ciphered) {
-                var key: * = key_from_name(VERIFCATION_TOKEN + "", this.packet_key_sources);
+            var key: * = key_from_name(VERIFCATION_TOKEN + "", this.packet_key_sources);
 
-                data = xxtea_decipher(data, key);
-            }
+            data = xxtea_decipher(data, key);
 
             var client_verification_template: * = "";
             while (data.bytesAvailable) {
