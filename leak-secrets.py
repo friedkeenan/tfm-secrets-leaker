@@ -54,7 +54,7 @@ def get_secrets(leaker_url):
         else:
             parameters = ""
 
-        leaker_url = Path(leaker_url).absolute()
+        leaker_url = Path(leaker_url).resolve()
 
         # Fortoresse has no policy file for cross-domain
         # loading, and so to support it we must manually
