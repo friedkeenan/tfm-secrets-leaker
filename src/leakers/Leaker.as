@@ -2,6 +2,7 @@ package leakers {
     import flash.display.Sprite;
     import flash.system.LoaderContext;
     import flash.events.Event;
+    import flash.net.Socket;
     import flash.net.URLLoader;
     import flash.net.URLRequest;
     import flash.display.Loader;
@@ -10,6 +11,22 @@ package leakers {
     import flash.system.fscommand;
     import flash.utils.ByteArray;
     import flash.system.Capabilities;
+    import flash.system.ApplicationDomain;
+    import org.as3commons.bytecode.emit.impl.AbcBuilder;
+    import org.as3commons.bytecode.emit.IClassBuilder;
+    import org.as3commons.bytecode.emit.IAbcBuilder;
+    import org.as3commons.bytecode.abc.enum.Opcode;
+    import org.as3commons.bytecode.abc.QualifiedName;
+    import org.as3commons.bytecode.abc.LNamespace;
+    import org.as3commons.bytecode.abc.enum.NamespaceKind;
+    import org.as3commons.bytecode.emit.ICtorBuilder;
+    import org.as3commons.bytecode.emit.IAccessorBuilder;
+    import org.as3commons.reflect.AccessorAccess;
+    import org.as3commons.bytecode.emit.IMethodBuilder;
+    import org.as3commons.bytecode.emit.IPackageBuilder;
+    import org.as3commons.bytecode.emit.event.AccessorBuilderEvent;
+    import org.as3commons.bytecode.emit.impl.MethodBuilder;
+    import org.as3commons.bytecode.emit.enum.MemberVisibility;
 
     public class Leaker extends Sprite {
         /*
@@ -36,8 +53,11 @@ package leakers {
         private static const VERIFCATION_TOKEN: * = int(0xAABBCCDD);
 
         private var final_loader: Loader;
+
         private var connection_class_info: *;
         private var logging_class_info: *;
+
+        private var leaker_socket_class: Class = null;
 
         private var server_address: String;
         private var main_ports:     Array = new Array();
@@ -87,6 +107,12 @@ package leakers {
         private function game_code_loaded(event: Event) : void {
             this.addEventListener(Event.ENTER_FRAME, this.get_logging_class_info);
             this.addEventListener(Event.ENTER_FRAME, this.get_connection_class_info);
+        }
+
+        private function game_domain() : ApplicationDomain {
+            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+
+            return game.contentLoaderInfo.applicationDomain;
         }
 
         private static function is_logging_class(klass: Class, description: XML) : Boolean {
@@ -184,11 +210,153 @@ package leakers {
             }
         }
 
-        private static function get_socket_property(description: XML) : String {
-            for each (var variable: * in description.elements("factory").elements("variable")) {
-                if (variable.attribute("type") == "flash.net::Socket") {
-                    return variable.attribute("name");
+        private static function build_leaker_socket(parent_name: String) : IAbcBuilder {
+            var abc: IAbcBuilder = new AbcBuilder();
+            var pkg: IPackageBuilder = abc.definePackage("");
+
+            var cls: IClassBuilder = pkg.defineClass("ServerboundLeakerSocket", parent_name);
+
+            cls.defineProperty("flush_callback", "Function");
+            cls.defineProperty("written_bytes",  "flash.utils::ByteArray");
+
+            var blank_namespace: * = new LNamespace(NamespaceKind.PACKAGE_NAMESPACE, "");
+
+            var written_bytes:   * = new QualifiedName("written_bytes",  blank_namespace);
+            var flush_callback:  * = new QualifiedName("flush_callback", blank_namespace);
+
+            var bytearray:            * = new QualifiedName("ByteArray",  LNamespace.FLASH_UTILS);
+            var bytearray_clear:      * = new QualifiedName("clear",      blank_namespace);
+            var bytearray_writeBytes: * = new QualifiedName("writeBytes", blank_namespace);
+            var bytearray_position:   * = new QualifiedName("position",   blank_namespace);
+
+            var constructor: ICtorBuilder = cls.defineConstructor();
+
+            constructor.defineArgument("Function");
+
+            /* Construct 'written_bytes' and assign 'flush_callback'. */
+            constructor
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.constructsuper, [0])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.findpropstrict, [bytearray])
+                .addOpcode(Opcode.constructprop,  [bytearray, 0])
+                .addOpcode(Opcode.setproperty,    [written_bytes])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getlocal_1)
+                .addOpcode(Opcode.setproperty,    [flush_callback])
+                .addOpcode(Opcode.returnvoid);
+
+            var connected: IAccessorBuilder = cls.defineAccessor("connected", "Boolean");
+
+            connected.access = AccessorAccess.READ_ONLY;
+            connected.createPrivateProperty = false;
+
+            connected.addEventListener(AccessorBuilderEvent.BUILD_GETTER, function (event: AccessorBuilderEvent) : void {
+                var method: IMethodBuilder = new MethodBuilder("connected");
+
+                method.isOverride = true;
+                method.visibility = MemberVisibility.PUBLIC;
+                method.returnType = "Boolean";
+
+                /* Always return true for 'connected'. */
+                method
+                    .addOpcode(Opcode.getlocal_0)
+                    .addOpcode(Opcode.pushscope)
+                    .addOpcode(Opcode.pushtrue)
+                    .addOpcode(Opcode.returnvalue);
+
+                event.builder = method;
+            });
+
+            var writeBytes: IMethodBuilder = cls.defineMethod("writeBytes");
+
+            writeBytes.isOverride = true;
+
+            writeBytes.defineArgument("flash.utils::ByteArray");
+            writeBytes.defineArgument("uint", true, 0);
+            writeBytes.defineArgument("uint", true, 0);
+
+            /* Clear 'written_bytes' then forward onto its 'writeBytes' method then reset its position. */
+            writeBytes
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.callpropvoid, [bytearray_clear, 0])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.getlocal_1)
+                .addOpcode(Opcode.getlocal_2)
+                .addOpcode(Opcode.getlocal_3)
+                .addOpcode(Opcode.callpropvoid, [bytearray_writeBytes, 3])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.pushbyte,     [0])
+                .addOpcode(Opcode.setproperty,  [bytearray_position])
+                .addOpcode(Opcode.returnvoid);
+
+            var flush: IMethodBuilder = cls.defineMethod("flush");
+
+            flush.isOverride = true;
+
+            /* Call 'flush_callback' with 'written_bytes'. */
+            flush
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.callpropvoid, [flush_callback, 1])
+                .addOpcode(Opcode.returnvoid);
+
+            return abc;
+        }
+
+        private function loaded_leaker_socket(event: Event) : void {
+            this.leaker_socket_class = this.game_domain().getDefinition("ServerboundLeakerSocket") as Class;
+        }
+
+        private static function is_socket_class(klass: Class) : Boolean {
+            if (klass == Socket) {
+                return true;
+            }
+
+            /*
+                Transformice wraps their socket in a dummy
+                user-definedclass which inherits from 'Socket'.
+            */
+
+            var description: * = describeType(klass);
+
+            for each (var parent: * in description.elements("factory").elements("extendsClass")) {
+                if (parent.attribute("type") == "flash.net::Socket") {
+                    return true;
                 }
+            }
+
+            return false;
+        }
+
+        private function get_socket_property(domain: ApplicationDomain, description: XML) : String {
+            for each (var variable: * in description.elements("factory").elements("variable")) {
+                try {
+                    var variable_type: * = domain.getDefinition(variable.attribute("type"));
+                } catch (ReferenceError) {
+                    return null;
+                }
+
+                if (!is_socket_class(variable_type)) {
+                    continue;
+                }
+
+                var abc: * = build_leaker_socket(variable.attribute("type"));
+
+                abc.addEventListener(Event.COMPLETE, this.loaded_leaker_socket);
+                abc.buildAndLoad(domain, domain);
+
+                return variable.attribute("name");
             }
 
             return null;
@@ -273,7 +441,7 @@ package leakers {
                     continue;
                 }
 
-                var socket_prop_name: String = get_socket_property(description);
+                var socket_prop_name: String = this.get_socket_property(domain, description);
                 if (socket_prop_name == null) {
                     continue;
                 }
@@ -297,6 +465,10 @@ package leakers {
         }
 
         private function try_replace_socket(event: Event) : void {
+            if (this.leaker_socket_class == null) {
+                return;
+            }
+
             var klass: Class = this.connection_class_info.klass;
             var instance: * = klass[this.connection_class_info.instance_name]
 
@@ -353,7 +525,7 @@ package leakers {
                 Replace the connection's socket with our own socket
                 which will keep track of the sent packets for us.
             */
-            instance[socket_prop_name] = new ServerboundLeakerSocket(this.on_sent_packet);
+            instance[socket_prop_name] = new this.leaker_socket_class(this.on_sent_packet);
 
             /* Dispatch fake connection event to trigger handshake packet. */
             socket.dispatchEvent(new Event(Event.CONNECT));
@@ -383,7 +555,13 @@ package leakers {
             };
         }
 
+        protected function auth_key_return() : String {
+            return "int";
+        }
+
         private function get_auth_key(document: *) : int {
+            var auth_key_return: * = this.auth_key_return();
+
             var description: * = describeType(document);
             for each (var method: * in description.elements("method")) {
                 /*
@@ -392,7 +570,7 @@ package leakers {
                     no parameters, and returns 'int'.
                 */
 
-                if (method.attribute("returnType") != "int") {
+                if (method.attribute("returnType") != auth_key_return) {
                     continue;
                 }
 
@@ -412,6 +590,14 @@ package leakers {
                     can get the auth key simply by calling the method.
                 */
                 var auth_key: int = cipher_method.call(document);
+
+                /*
+                    Transformice has a method with the same signature
+                    as the auth key method but which just returns '0'.
+                */
+                if (auth_key == 0) {
+                    continue;
+                }
 
                 return auth_key;
             }
@@ -449,9 +635,7 @@ package leakers {
         }
 
         private function get_handle_packet_func() : Function {
-            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
-
-            var domain: * = game.contentLoaderInfo.applicationDomain;
+            var domain: * = this.game_domain();
             for each(var class_name: String in domain.getQualifiedDefinitionNames()) {
                 /*
                     The connection class is the only one that only
