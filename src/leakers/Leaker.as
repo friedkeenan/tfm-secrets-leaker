@@ -325,7 +325,7 @@ package leakers {
 
             /*
                 Transformice wraps their socket in a dummy
-                user-definedclass which inherits from 'Socket'.
+                user-defined class which inherits from 'Socket'.
             */
 
             var description: * = describeType(klass);
