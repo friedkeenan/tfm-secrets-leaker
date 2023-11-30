@@ -468,7 +468,10 @@ package leakers {
                     to a single XOR, and since '0 ^ key == key', we
                     can get the auth key simply by calling the method.
                 */
-                var auth_key: int = cipher_method.call(document);
+                var auth_key: * = cipher_method.call(document);
+                if (auth_key.constructor != Number) {
+                    continue;
+                }
 
                 /*
                     Transformice has a method with the same signature
