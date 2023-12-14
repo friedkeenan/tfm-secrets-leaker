@@ -3,8 +3,9 @@ package leakers {
     import flash.net.Socket;
 
     public class TransformiceLeaker extends Leaker {
-        private static const SOCKET_KEY_NAME: String = "posSocket";
+        private static const BOGUS_SOCKET_KEY_NAME: String = "posSocket";
 
+        private var socket_key_name:  String = null;
         private var socket_dict_name: String = null;
 
         public function TransformiceLeaker() {
@@ -15,10 +16,10 @@ package leakers {
             var description: * = describeType(klass);
 
             for each (var variable: * in description.elements("factory").elements("variable")) {
-                if (variable.attribute("name") != SOCKET_KEY_NAME) {
+                if (variable.attribute("type") == "int") {
+                    this.socket_key_name = variable.attribute("name");
+                } else if (variable.attribute("name") != BOGUS_SOCKET_KEY_NAME) {
                     this.socket_dict_name = variable.attribute("name");
-
-                    break;
                 }
             }
         }
@@ -26,13 +27,13 @@ package leakers {
         protected override function get_connection_socket(instance: *) : Socket {
             var adaptor: * = instance[this.connection_class_info.socket_prop_name];
 
-            return adaptor[this.socket_dict_name][adaptor[SOCKET_KEY_NAME]];
+            return adaptor[this.socket_dict_name][adaptor[this.socket_key_name]];
         }
 
         protected override function set_connection_socket(instance: *, socket: Socket) : void {
             var adaptor: * = instance[this.connection_class_info.socket_prop_name];
 
-            adaptor[this.socket_dict_name][adaptor[SOCKET_KEY_NAME]] = socket;
+            adaptor[this.socket_dict_name][adaptor[this.socket_key_name]] = socket;
         }
 
         protected override function auth_key_return() : String {
