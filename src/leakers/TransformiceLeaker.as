@@ -3,8 +3,6 @@ package leakers {
     import flash.net.Socket;
 
     public class TransformiceLeaker extends Leaker {
-        private static const BOGUS_SOCKET_KEY_NAME: String = "posSocket";
-
         private var socket_key_name:  String = null;
         private var socket_dict_name: String = null;
 
@@ -16,9 +14,9 @@ package leakers {
             var description: * = describeType(klass);
 
             for each (var variable: * in description.elements("factory").elements("variable")) {
-                if (variable.attribute("type") == "String") {
+                if (variable.attribute("type") == "Number") {
                     this.socket_key_name = variable.attribute("name");
-                } else if (variable.attribute("name") != BOGUS_SOCKET_KEY_NAME) {
+                } else {
                     this.socket_dict_name = variable.attribute("name");
                 }
             }
