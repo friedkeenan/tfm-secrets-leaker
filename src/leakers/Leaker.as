@@ -446,7 +446,7 @@ package leakers {
                 /*
                     The method that ciphers the auth token is the only
                     one in the document class that is non-static, takes
-                    no parameters, and returns 'int'.
+                    no parameters, and returns our return type.
                 */
 
                 if (method.attribute("returnType") != auth_key_return) {
