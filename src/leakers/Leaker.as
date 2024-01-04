@@ -194,29 +194,8 @@ package leakers {
             }
         }
 
-        private static function is_socket_class(klass: Class) : Boolean {
-            if (klass == Socket) {
-                return true;
-            }
-
-            /*
-                Transformice wraps their socket in a dummy
-                user-defined class which inherits from 'Socket'.
-            */
-
-            var description: * = describeType(klass);
-
-            for each (var parent: * in description.elements("factory").elements("extendsClass")) {
-                if (parent.attribute("type") == "flash.net::Socket") {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        protected function process_socket_class(klass: Class) : void {
-            /* Stub implementation. */
+        protected function is_socket_class(klass: Class) : Boolean {
+            return klass == Socket;
         }
 
         private function get_socket_property(domain: ApplicationDomain, description: XML) : String {
@@ -227,11 +206,9 @@ package leakers {
                     return null;
                 }
 
-                if (!is_socket_class(variable_type)) {
+                if (!this.is_socket_class(variable_type)) {
                     continue;
                 }
-
-                this.process_socket_class(variable_type);
 
                 return variable.attribute("name");
             }
@@ -351,7 +328,7 @@ package leakers {
 
         private function try_replace_socket(event: Event) : void {
             var klass: Class = this.connection_class_info.klass;
-            var instance: * = klass[this.connection_class_info.instance_name]
+            var instance: * = klass[this.connection_class_info.instance_name];
 
             if (instance == null) {
                 return;
