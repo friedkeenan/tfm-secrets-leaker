@@ -22,13 +22,25 @@ package leakers {
         protected override function get_connection_socket(instance: *) : Socket {
             var adaptor: * = instance[this.connection_class_info.socket_prop_name];
 
-            return adaptor["index"][adaptor["po"]];
+            for each (var dict: * in adaptor) {
+                for each (var socket: * in dict) {
+                    return socket;
+                }
+            }
+
+            return null;
         }
 
         protected override function set_connection_socket(instance: *, socket: Socket) : void {
             var adaptor: * = instance[this.connection_class_info.socket_prop_name];
 
-            adaptor["index"][adaptor["po"]] = socket;
+            for each (var dict: * in adaptor) {
+                for (var key: * in dict) {
+                    dict[key] = socket;
+
+                    return;
+                }
+            }
         }
 
         protected override function auth_key_return() : String {
