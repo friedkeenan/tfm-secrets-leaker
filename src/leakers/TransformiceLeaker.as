@@ -13,11 +13,17 @@ package leakers {
             var description: * = describeType(klass);
 
             for each (var method: * in description.elements("factory").elements("method")) {
-                if (method.attribute("returnType") == "flash.net::Socket") {
-                    this.socket_getter = method.attribute("name");
-
-                    return true;
+                if (method.attribute("returnType") != "*") {
+                    return false;
                 }
+
+                if (method.elements("parameter").length() != 0) {
+                    return false;
+                }
+
+                this.socket_getter = method.attribute("name");
+
+                return true;
             }
 
             return false;

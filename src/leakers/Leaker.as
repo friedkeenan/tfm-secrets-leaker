@@ -194,6 +194,23 @@ package leakers {
             }
         }
 
+        private static function has_security_error_method(description: XML) : Boolean {
+            for each (var method: * in description.elements("factory").elements("method")) {
+                var params: * = method.elements("parameter");
+                if (params.length() != 1) {
+                    continue;
+                }
+
+                if (params[0].attribute("type") != "flash.events::SecurityErrorEvent") {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
         protected function is_socket_class(klass: Class) : Boolean {
             return klass == Socket;
         }
@@ -273,7 +290,8 @@ package leakers {
                 /*
                     The connection class is the only one that only
                     inherits from 'Object', doesn't implement any
-                    interface, and has a non-static 'Socket' property.
+                    interface, and has a method which accepts a
+                    'SecurityErrorEvent'.
                 */
 
                 var klass: * = domain.getDefinition(class_name);
@@ -292,6 +310,10 @@ package leakers {
                 }
 
                 if (description.elements("factory").elements("implementsInterface").length() != 0) {
+                    continue;
+                }
+
+                if (!has_security_error_method(description)) {
                     continue;
                 }
 
