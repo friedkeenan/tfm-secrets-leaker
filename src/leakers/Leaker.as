@@ -194,25 +194,12 @@ package leakers {
             }
         }
 
-        private static function has_security_error_method(description: XML) : Boolean {
-            for each (var method: * in description.elements("factory").elements("method")) {
-                var params: * = method.elements("parameter");
-                if (params.length() != 1) {
-                    continue;
-                }
-
-                if (params[0].attribute("type") != "flash.events::SecurityErrorEvent") {
-                    continue;
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-
         protected function is_socket_class(klass: Class) : Boolean {
             return klass == Socket;
+        }
+
+        protected function process_socket_class(klass: Class) : void {
+            /* Stub implementation. */
         }
 
         private function get_socket_property(domain: ApplicationDomain, description: XML) : String {
@@ -226,6 +213,8 @@ package leakers {
                 if (!this.is_socket_class(variable_type)) {
                     continue;
                 }
+
+                this.process_socket_class(variable_type);
 
                 return variable.attribute("name");
             }
@@ -310,10 +299,6 @@ package leakers {
                 }
 
                 if (description.elements("factory").elements("implementsInterface").length() != 0) {
-                    continue;
-                }
-
-                if (!has_security_error_method(description)) {
                     continue;
                 }
 
