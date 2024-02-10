@@ -41,7 +41,8 @@ package leakers {
 
         private var logging_class_info: *;
 
-        protected var connection_class_info: *;
+        protected var socket_prop_name: String;
+        private var connection_class_info: *;
 
         private var server_address: String;
         private var main_ports:     Array = new Array();
@@ -93,10 +94,16 @@ package leakers {
             this.addEventListener(Event.ENTER_FRAME, this.get_connection_class_info);
         }
 
-        private function game_domain() : ApplicationDomain {
-            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+        private function game() : Loader {
+            return (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+        }
 
-            return game.contentLoaderInfo.applicationDomain;
+        private function game_domain() : ApplicationDomain {
+            return this.game().contentLoaderInfo.applicationDomain;
+        }
+
+        protected function document() : * {
+            return this.game().getChildAt(0);
         }
 
         private static function is_logging_class(klass: Class, description: XML) : Boolean {
@@ -159,7 +166,7 @@ package leakers {
         }
 
         private function get_logging_class_info(event: Event) : void {
-            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+            var game: * = this.game();
 
             if (game.numChildren == 0) {
                 return;
@@ -194,32 +201,31 @@ package leakers {
             }
         }
 
-        protected function is_socket_class(klass: Class) : Boolean {
-            return klass == Socket;
-        }
-
-        protected function process_socket_class(klass: Class) : void {
-            /* Stub implementation. */
-        }
-
-        private function get_socket_property(domain: ApplicationDomain, description: XML) : String {
-            for each (var variable: * in description.elements("factory").elements("variable")) {
-                try {
-                    var variable_type: * = domain.getDefinition(variable.attribute("type"));
-                } catch (ReferenceError) {
-                    return null;
-                }
-
-                if (!this.is_socket_class(variable_type)) {
+        private static function has_security_error_method(description: XML) : Boolean {
+            for each (var method: * in description.elements("factory").elements("method")) {
+                var params: * = method.elements("parameter");
+                if (params.length() != 1) {
                     continue;
                 }
 
-                this.process_socket_class(variable_type);
+                if (params[0].attribute("type") != "flash.events::SecurityErrorEvent") {
+                    continue;
+                }
 
-                return variable.attribute("name");
+                return true;
             }
 
-            return null;
+            return false;
+        }
+
+        protected function get_socket_info(description: XML) : void {
+            for each (var variable: * in description.elements("factory").elements("variable")) {
+                if (variable.attribute("type") == "flash.net::Socket") {
+                    this.socket_prop_name = variable.attribute("name");
+
+                    return;
+                }
+            }
         }
 
         private static function get_connection_instance_name(description: XML) : String {
@@ -266,7 +272,7 @@ package leakers {
         }
 
         private function get_connection_class_info(event: Event) : void {
-            var game: * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
+            var game: * = this.game();
 
             if (game.numChildren == 0) {
                 return;
@@ -302,10 +308,11 @@ package leakers {
                     continue;
                 }
 
-                var socket_prop_name: String = this.get_socket_property(domain, description);
-                if (socket_prop_name == null) {
+                if (!has_security_error_method(description)) {
                     continue;
                 }
+
+                this.get_socket_info(description);
 
                 var address_prop_name:         * = get_address_prop_name(description);
                 var possible_ports_prop_names: * = get_possible_ports_properties(description);
@@ -313,7 +320,6 @@ package leakers {
 
                 this.connection_class_info = {
                     klass:                     klass,
-                    socket_prop_name:          socket_prop_name,
                     address_prop_name:         address_prop_name,
                     possible_ports_prop_names: possible_ports_prop_names,
                     instance_name:             instance_name
@@ -326,11 +332,11 @@ package leakers {
         }
 
         protected function get_connection_socket(instance: *) : Socket {
-            return instance[this.connection_class_info.socket_prop_name];
+            return instance[this.socket_prop_name];
         }
 
         protected function set_connection_socket(instance: *, socket: Socket) : void {
-            instance[this.connection_class_info.socket_prop_name] = socket;
+            instance[this.socket_prop_name] = socket;
         }
 
         private function try_replace_socket(event: Event) : void {
@@ -647,8 +653,7 @@ package leakers {
             if (this.handshake_secrets == null) {
                 this.handshake_secrets = this.get_handshake_secrets(data);
 
-                var game:     * = (this.final_loader.content as DisplayObjectContainer).getChildAt(0) as Loader;
-                var document: * = game.getChildAt(0);
+                var document: * = this.document();
 
                 this.auth_key           = this.get_auth_key(document);
                 this.packet_key_sources = this.get_packet_key_sources(document);
