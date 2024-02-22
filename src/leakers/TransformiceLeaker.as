@@ -9,9 +9,21 @@ package leakers {
 
         private function get_socket_method_name(description: XML) : String {
             for each (var method: * in description.elements("method")) {
-                if (method.attribute("returnType") == "flash.net::Socket") {
-                    return method.attribute("name");
+                var parameters: * = method.elements("parameter");
+
+                if (parameters.length() != 1) {
+                    continue;
                 }
+
+                if (parameters[0].attribute("type") != "int") {
+                    continue;
+                }
+
+                if (method.attribute("returnType") != "*") {
+                    continue;
+                }
+
+                return method.attribute("name");
             }
 
             return null;
