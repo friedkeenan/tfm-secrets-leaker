@@ -7,9 +7,14 @@ import sys
 
 from pathlib import Path
 
-# current directory of the script + flashplayer_debugger
+# debugger was taken from https://archive.org/details/flashplayer_32_sa_debug_2
+
+# Or if you have installed Flash Player Debugger,
 # leave it to "" to use the default instead
-custom_path = os.path.join(os.getcwd(), "PATH_TO_FLASHPLAYERDEBUGGER")
+custom_path = ""
+
+# Using a Standalone Debugger >
+# custom_path = os.path.join(os.getcwd(), "PATH_TO_FLASHPLAYERDEBUGGER")
 
 
 def config_file_path():

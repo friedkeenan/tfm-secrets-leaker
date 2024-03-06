@@ -16,6 +16,13 @@ When running the built SWF file, it will `trace` out the obtained secrets. These
 ./leak-secrets.py <path/to/TFMSecretsLeaker.swf>
 ```
 
+```
+You can also edit the code for leak-secrets.py at line 14
+to provide your own standalone debugger, or use the one provided which is debugger.exe
+```
+
+Debugger was taken from https://archive.org/details/flashplayer_32_sa_debug_2
+
 When running the SWF, a window will pop up for a short moment, seem to begin to load the game, and then exit. This is normal.
 
 Unfortunately this is not currently compatible with [Ruffle](https://github.com/ruffle-rs/ruffle/) as it does not currently implement `fscommand("quit")`.
