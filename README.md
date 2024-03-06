@@ -18,9 +18,9 @@ When running the built SWF file, it will `trace` out the obtained secrets. These
 
 ```
 You can also edit the code for leak-secrets.py at line 14 to use a standalone debugger.
+download the debugger: https://archive.org/details/flashplayer_32_sa_debug_2 and place it on the same directory as your .py
 ```
 
-Get it here: https://archive.org/details/flashplayer_32_sa_debug_2 and place it on the same directory.
 
 When running the SWF, a window will pop up for a short moment, seem to begin to load the game, and then exit. This is normal.
 
