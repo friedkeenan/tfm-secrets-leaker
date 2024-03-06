@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 
 import contextlib
+import os
 import subprocess
 import sys
 
 from pathlib import Path
 
+# current directory of the script + flashplayer_debugger
+# leave it to "" to use the default instead
+custom_path = os.path.join(os.getcwd(), "PATH_TO_FLASHPLAYERDEBUGGER")
+
+
 def config_file_path():
     return Path("~/mm.cfg").expanduser()
+
 
 def flash_player_dir():
     path = None
@@ -23,13 +30,17 @@ def flash_player_dir():
 
     return path.expanduser()
 
+
 def log_file_path():
     return flash_player_dir() / "Logs/flashlog.txt"
+
 
 def trust_file_path():
     return flash_player_dir() / "#Security/FlashPlayerTrust/TFMSecretsLeaker.cfg"
 
+
 CONFIG_CONTENTS = "TraceOutputFileEnable=1"
+
 
 @contextlib.contextmanager
 def cleanup_configs(config, backup_config):
@@ -41,6 +52,7 @@ def cleanup_configs(config, backup_config):
 
         if backup_config is not None:
             backup_config.rename(config)
+
 
 def get_secrets(leaker_url):
     if sys.platform not in ("linux", "win32", "darwin"):
@@ -80,14 +92,25 @@ def get_secrets(leaker_url):
         f.write(CONFIG_CONTENTS)
 
     with cleanup_configs(config, backup_config):
+        path = None
+        if custom_path == "":
+            path = "flashplayerdebugger"
+        else:
+            path = custom_path
+
+        print(path)
+
         try:
-            subprocess.run(["flashplayerdebugger", leaker_url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(
+                [path, leaker_url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
         except FileNotFoundError:
             print(
                 "You must have the debug flash standalone projector installed "
                 "and accessible through the 'flashplayerdebugger' command."
-
                 "\n\n"
             )
 
@@ -97,8 +120,19 @@ def get_secrets(leaker_url):
     with log.open() as f:
         return f.read()
 
+
 def main(leaker_url):
-    print(get_secrets(leaker_url), end="")
+    secrets_revealed = get_secrets(leaker_url)
+    print(secrets_revealed, end="")
+
+    user = input("Do you want to save this? (y/n): ")
+    if user == "y":
+        # save the secrets to a file called secrets.txt
+        with open("secrets.txt", "w") as f:
+            f.write(secrets_revealed)
+
+        print("Secrets saved to secrets.txt")
+
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
