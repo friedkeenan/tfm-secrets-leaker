@@ -11,10 +11,10 @@ from pathlib import Path
 
 # Or if you have installed Flash Player Debugger,
 # leave it to "" to use the default instead
-custom_path = ""
+# custom_path = ""
 
 # Using a Standalone Debugger >
-# custom_path = os.path.join(os.getcwd(), "PATH_TO_FLASHPLAYERDEBUGGER")
+custom_path = os.path.join(os.getcwd(), "debugger.exe")
 
 
 def config_file_path():
