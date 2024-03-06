@@ -18,7 +18,7 @@ When running the built SWF file, it will `trace` out the obtained secrets. These
 
 ```
 You can also edit the code for leak-secrets.py at line 14 to use a standalone debugger.
-download the debugger: https://archive.org/details/flashplayer_32_sa_debug_2 and place it on the same directory as your .py
+download the debugger: https://archive.org/details/flashplayer_32_sa_debug_2 and place it on the same directory with your .py
 ```
 
 
