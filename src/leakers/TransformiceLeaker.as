@@ -1,8 +1,11 @@
 package leakers {
     import flash.utils.describeType;
     import flash.net.Socket;
+    import flash.utils.Dictionary;
 
     public class TransformiceLeaker extends Leaker {
+        private var socket_dict_name: String;
+
         public function TransformiceLeaker() {
             super("http://www.transformice.com/Transformice.swf", true);
         }
@@ -21,31 +24,29 @@ package leakers {
             var document:    * = this.document();
             var description: * = describeType(document);
 
-            var main_socket: * = document[this.get_socket_method_name(description)](1);
-
             for each (var variable: * in description.elements("variable")) {
-                if (variable.attribute("type") != "flash.net::Socket") {
+                if (variable.attribute("type") != "*") {
                     continue;
                 }
 
-                var socket: * = document[variable.attribute("name")];
+                var maybe_dictionary: * = document[variable.attribute("name")];
 
-                if (socket != main_socket) {
+                if (!(maybe_dictionary is Dictionary)) {
                     continue;
                 }
 
-                this.socket_prop_name = variable.attribute("name");
+                this.socket_dict_name = variable.attribute("name");
 
                 return;
             }
         }
 
         protected override function get_connection_socket(instance: *) : Socket {
-            return this.document()[this.socket_prop_name];
+            return this.document()[this.socket_dict_name][1];
         }
 
         protected override function set_connection_socket(instance: *, socket: Socket) : void {
-            this.document()[this.socket_prop_name] = socket;
+            this.document()[this.socket_dict_name][1] = socket;
         }
 
         protected override function auth_key_return() : String {

@@ -41,7 +41,7 @@ package leakers {
 
         private var logging_class_info: *;
 
-        protected var socket_prop_name: String;
+        private var socket_prop_name: String;
         private var connection_class_info: *;
 
         private var server_address: String;
