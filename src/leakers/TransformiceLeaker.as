@@ -10,16 +10,6 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
-        private function get_socket_method_name(description: XML) : String {
-            for each (var method: * in description.elements("method")) {
-                if (method.attribute("returnType") == "flash.net::Socket") {
-                    return method.attribute("name");
-                }
-            }
-
-            return null;
-        }
-
         protected override function get_socket_info(_: XML) : void {
             var document:    * = this.document();
             var description: * = describeType(document);
