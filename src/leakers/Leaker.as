@@ -12,6 +12,21 @@ package leakers {
     import flash.utils.ByteArray;
     import flash.system.Capabilities;
     import flash.system.ApplicationDomain;
+    import org.as3commons.bytecode.emit.impl.AbcBuilder;
+    import org.as3commons.bytecode.emit.IClassBuilder;
+    import org.as3commons.bytecode.emit.IAbcBuilder;
+    import org.as3commons.bytecode.abc.enum.Opcode;
+    import org.as3commons.bytecode.abc.QualifiedName;
+    import org.as3commons.bytecode.abc.LNamespace;
+    import org.as3commons.bytecode.abc.enum.NamespaceKind;
+    import org.as3commons.bytecode.emit.ICtorBuilder;
+    import org.as3commons.bytecode.emit.IAccessorBuilder;
+    import org.as3commons.reflect.AccessorAccess;
+    import org.as3commons.bytecode.emit.IMethodBuilder;
+    import org.as3commons.bytecode.emit.IPackageBuilder;
+    import org.as3commons.bytecode.emit.event.AccessorBuilderEvent;
+    import org.as3commons.bytecode.emit.impl.MethodBuilder;
+    import org.as3commons.bytecode.emit.enum.MemberVisibility;
 
     public class Leaker extends Sprite {
         /*
@@ -43,6 +58,8 @@ package leakers {
 
         private var socket_prop_name: String;
         private var connection_class_info: *;
+
+        private var leaker_socket_class: Class = null;
 
         private var server_address: String;
         private var main_ports:     Array = new Array();
@@ -218,10 +235,121 @@ package leakers {
             return false;
         }
 
-        protected function get_socket_info(description: XML) : void {
+        protected function build_leaker_socket(domain: ApplicationDomain, parent_name: String) : void {
+            var abc: IAbcBuilder = new AbcBuilder();
+            var pkg: IPackageBuilder = abc.definePackage("");
+
+            var cls: IClassBuilder = pkg.defineClass("ServerboundLeakerSocket", parent_name);
+
+            cls.defineProperty("flush_callback", "Function");
+            cls.defineProperty("written_bytes",  "flash.utils::ByteArray");
+
+            var blank_namespace: * = new LNamespace(NamespaceKind.PACKAGE_NAMESPACE, "");
+
+            var written_bytes:   * = new QualifiedName("written_bytes",  blank_namespace);
+            var flush_callback:  * = new QualifiedName("flush_callback", blank_namespace);
+
+            var bytearray:            * = new QualifiedName("ByteArray",  LNamespace.FLASH_UTILS);
+            var bytearray_clear:      * = new QualifiedName("clear",      blank_namespace);
+            var bytearray_writeBytes: * = new QualifiedName("writeBytes", blank_namespace);
+            var bytearray_position:   * = new QualifiedName("position",   blank_namespace);
+
+            var constructor: ICtorBuilder = cls.defineConstructor();
+
+            constructor.defineArgument("Function");
+
+            /* Construct 'written_bytes' and assign 'flush_callback'. */
+            constructor
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.constructsuper, [0])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.findpropstrict, [bytearray])
+                .addOpcode(Opcode.constructprop,  [bytearray, 0])
+                .addOpcode(Opcode.setproperty,    [written_bytes])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getlocal_1)
+                .addOpcode(Opcode.setproperty,    [flush_callback])
+                .addOpcode(Opcode.returnvoid);
+
+            var connected: IAccessorBuilder = cls.defineAccessor("connected", "Boolean");
+
+            connected.access = AccessorAccess.READ_ONLY;
+            connected.createPrivateProperty = false;
+
+            connected.addEventListener(AccessorBuilderEvent.BUILD_GETTER, function (event: AccessorBuilderEvent) : void {
+                var method: IMethodBuilder = new MethodBuilder("connected");
+
+                method.isOverride = true;
+                method.visibility = MemberVisibility.PUBLIC;
+                method.returnType = "Boolean";
+
+                /* Always return true for 'connected'. */
+                method
+                    .addOpcode(Opcode.getlocal_0)
+                    .addOpcode(Opcode.pushscope)
+                    .addOpcode(Opcode.pushtrue)
+                    .addOpcode(Opcode.returnvalue);
+
+                event.builder = method;
+            });
+
+            var writeBytes: IMethodBuilder = cls.defineMethod("writeBytes");
+
+            writeBytes.isOverride = true;
+
+            writeBytes.defineArgument("flash.utils::ByteArray");
+            writeBytes.defineArgument("uint", true, 0);
+            writeBytes.defineArgument("uint", true, 0);
+
+            /* Clear 'written_bytes' then forward onto its 'writeBytes' method then reset its position. */
+            writeBytes
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.callpropvoid, [bytearray_clear, 0])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.getlocal_1)
+                .addOpcode(Opcode.getlocal_2)
+                .addOpcode(Opcode.getlocal_3)
+                .addOpcode(Opcode.callpropvoid, [bytearray_writeBytes, 3])
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.pushbyte,     [0])
+                .addOpcode(Opcode.setproperty,  [bytearray_position])
+                .addOpcode(Opcode.returnvoid);
+
+            var flush: IMethodBuilder = cls.defineMethod("flush");
+
+            flush.isOverride = true;
+
+            /* Call 'flush_callback' with 'written_bytes'. */
+            flush
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.pushscope)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getlocal_0)
+                .addOpcode(Opcode.getproperty,  [written_bytes])
+                .addOpcode(Opcode.callpropvoid, [flush_callback, 1])
+                .addOpcode(Opcode.returnvoid);
+
+            abc.addEventListener(Event.COMPLETE, this.loaded_leaker_socket);
+            abc.buildAndLoad(domain, domain);
+        }
+
+        private function loaded_leaker_socket(event: Event) : void {
+            this.leaker_socket_class = this.game_domain().getDefinition("ServerboundLeakerSocket") as Class;
+        }
+
+        protected function process_socket_info(domain: ApplicationDomain, description: XML) : void {
             for each (var variable: * in description.elements("factory").elements("variable")) {
                 if (variable.attribute("type") == "flash.net::Socket") {
                     this.socket_prop_name = variable.attribute("name");
+
+                    this.build_leaker_socket(domain, "flash.net::Socket");
 
                     return;
                 }
@@ -312,7 +440,7 @@ package leakers {
                     continue;
                 }
 
-                this.get_socket_info(description);
+                this.process_socket_info(domain, description);
 
                 var address_prop_name:         * = get_address_prop_name(description);
                 var possible_ports_prop_names: * = get_possible_ports_properties(description);
@@ -340,6 +468,10 @@ package leakers {
         }
 
         private function try_replace_socket(event: Event) : void {
+            if (this.leaker_socket_class == null) {
+                return;
+            }
+
             var klass: Class = this.connection_class_info.klass;
             var instance: * = klass[this.connection_class_info.instance_name];
 
@@ -394,7 +526,7 @@ package leakers {
                 Replace the connection's socket with our own socket
                 which will keep track of the sent packets for us.
             */
-            this.set_connection_socket(instance, new ServerboundLeakerSocket(this.on_sent_packet));
+            this.set_connection_socket(instance, new this.leaker_socket_class(this.on_sent_packet));
 
             /* Dispatch fake connection event to trigger handshake packet. */
             socket.dispatchEvent(new Event(Event.CONNECT));
