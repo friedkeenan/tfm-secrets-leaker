@@ -10,29 +10,9 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
-        private function is_socket_class(klass: Class) : Boolean {
-            var description: * = describeType(klass);
-
-            for each (var parent: * in description.elements("factory").elements("extendsClass")) {
-                if (parent.attribute("type") == "flash.net::Socket") {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private function get_socket_method_name(domain: ApplicationDomain, description: XML) : String {
+        private function get_socket_method_name(description: XML) : String {
             for each (var method: * in description.elements("method")) {
-                try {
-                    var return_type: * = domain.getDefinition(method.attribute("returnType"));
-                } catch (ReferenceError) {
-                    continue;
-                }
-
-                if (this.is_socket_class(return_type)) {
-                    this.build_leaker_socket(domain, method.attribute("returnType"));
-
+                if (method.attribute("returnType") == "flash.net::Socket") {
                     return method.attribute("name");
                 }
             }
@@ -40,11 +20,22 @@ package leakers {
             return null;
         }
 
-        protected override function process_socket_info(domain: ApplicationDomain, _: XML) : void {
+        private function get_socket_prop_name(description: XML) : void {
+            for each (var variable: * in description.elements("variable")) {
+                if (variable.attribute("type") == "flash.net::Socket") {
+                    this.socket_prop_name = variable.attribute("name");
+
+                    return;
+                }
+            }
+        }
+
+        protected override function process_socket_info(_: XML) : void {
             var document:    * = this.document();
             var description: * = describeType(document);
 
-            var socket: * = document[this.get_socket_method_name(domain, description)](-1);
+            /* Load a socket into the dictionary. */
+            document[this.get_socket_method_name(description)](-1);
 
             for each (var variable: * in description.elements("variable")) {
                 if (variable.attribute("type") != "flash.utils::Dictionary") {
@@ -57,10 +48,17 @@ package leakers {
                     continue;
                 }
 
-                if (dictionary[-1] == socket) {
+                var maybe_socket: * = dictionary[-1];
+                if (maybe_socket == null) {
+                    continue;
+                }
+
+                if (maybe_socket is Socket) {
                     delete dictionary[-1];
 
                     this.socket_dict_name = variable.attribute("name");
+
+                    this.get_socket_prop_name(describeType(maybe_socket));
 
                     return;
                 }
@@ -69,7 +67,7 @@ package leakers {
 
         protected override function get_connection_socket(instance: *) : Socket {
             for each (var socket: * in this.document()[this.socket_dict_name]) {
-                return socket;
+                return socket[this.socket_prop_name];
             }
 
             return null;
@@ -79,7 +77,7 @@ package leakers {
             var dictionary: * = this.document()[this.socket_dict_name];
 
             for (var key: * in dictionary) {
-                dictionary[key] = socket;
+                dictionary[key][this.socket_prop_name] = socket;
 
                 return;
             }

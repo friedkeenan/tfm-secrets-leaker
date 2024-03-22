@@ -3,11 +3,6 @@ package {
     import flash.utils.ByteArray;
 
     public class ServerboundLeakerSocket extends Socket {
-        /*
-            NOTE: This class serves as a reference for what
-            the generated leaker socket class looks like.
-        */
-
         private var flush_callback: Function;
         private var written_bytes:  ByteArray = new ByteArray();
 
