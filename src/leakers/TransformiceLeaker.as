@@ -2,6 +2,7 @@ package leakers {
     import flash.utils.describeType;
     import flash.net.Socket;
     import flash.system.ApplicationDomain;
+    import flash.utils.getQualifiedClassName;
 
     public class TransformiceLeaker extends Leaker {
         private var socket_dict_name: String;
@@ -10,19 +11,33 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
-        private function get_socket_method_name(description: XML) : String {
+        private function get_socket_method_name(domain: ApplicationDomain, description: XML) : String {
             for each (var method: * in description.elements("method")) {
-                if (method.attribute("returnType") == "flash.net::Socket") {
-                    return method.attribute("name");
+                var parameters: * = method.elements("parameter");
+                if (parameters.length() != 1) {
+                    continue;
                 }
+
+                if (parameters[0].attribute("type") != "Number") {
+                    continue;
+                }
+
+                var return_type: * = method.attribute("returnType");
+                if (return_type == "void" || return_type == "*") {
+                    continue;
+                }
+
+                this.build_leaker_socket(domain, return_type);
+
+                return method.attribute("name");
             }
 
             return null;
         }
 
-        private function get_socket_prop_name(description: XML) : void {
+        private function get_socket_prop_name(description: XML, type_name: String) : void {
             for each (var variable: * in description.elements("variable")) {
-                if (variable.attribute("type") == "flash.net::Socket") {
+                if (variable.attribute("type") == type_name) {
                     this.socket_prop_name = variable.attribute("name");
 
                     return;
@@ -30,12 +45,12 @@ package leakers {
             }
         }
 
-        protected override function process_socket_info(_: XML) : void {
+        protected override function process_socket_info(domain: ApplicationDomain, _: XML) : void {
             var document:    * = this.document();
             var description: * = describeType(document);
 
             /* Load a socket into the dictionary. */
-            document[this.get_socket_method_name(description)](-1);
+            var real_socket: * = document[this.get_socket_method_name(domain, description)](-1);
 
             for each (var variable: * in description.elements("variable")) {
                 if (variable.attribute("type") != "flash.utils::Dictionary") {
@@ -58,7 +73,7 @@ package leakers {
 
                     this.socket_dict_name = variable.attribute("name");
 
-                    this.get_socket_prop_name(describeType(maybe_socket));
+                    this.get_socket_prop_name(describeType(maybe_socket), getQualifiedClassName(real_socket));
 
                     return;
                 }
