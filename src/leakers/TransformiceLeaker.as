@@ -14,7 +14,7 @@ package leakers {
         private function get_socket_method_name(domain: ApplicationDomain, description: XML) : String {
             for each (var method: * in description.elements("method")) {
                 var parameters: * = method.elements("parameter");
-                if (parameters.length() != 1) {
+                if (parameters.length() != 2) {
                     continue;
                 }
 
