@@ -11,14 +11,24 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
+        private static function all_numbers(parameters: XMLList) : Boolean {
+            for each (var param: * in parameters) {
+                if (param.attribute("type") != "Number") {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private function get_socket_method_name(domain: ApplicationDomain, description: XML) : String {
             for each (var method: * in description.elements("method")) {
                 var parameters: * = method.elements("parameter");
-                if (parameters.length() != 2) {
+                if (parameters.length() != 3) {
                     continue;
                 }
 
-                if (parameters[0].attribute("type") != "Number") {
+                if (!all_numbers(parameters)) {
                     continue;
                 }
 
