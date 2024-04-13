@@ -11,9 +11,9 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
-        private static function all_numbers(parameters: XMLList) : Boolean {
-            for each (var param: * in parameters) {
-                if (param.attribute("type") != "Number") {
+        private static function parameters_match(parameters: XMLList, ... types) : Boolean {
+            for (var i: int = 0; i < parameters.length(); ++i) {
+                if (parameters[i].attribute("type") != types[i]) {
                     return false;
                 }
             }
@@ -28,7 +28,7 @@ package leakers {
                     continue;
                 }
 
-                if (!all_numbers(parameters)) {
+                if (!parameters_match(parameters, "Number", "Number", "int")) {
                     continue;
                 }
 
