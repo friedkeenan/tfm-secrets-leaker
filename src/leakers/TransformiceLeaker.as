@@ -11,33 +11,41 @@ package leakers {
             super("http://www.transformice.com/Transformice.swf", true);
         }
 
-        private static function parameters_match(parameters: XMLList, ... types) : Boolean {
-            for (var i: int = 0; i < parameters.length(); ++i) {
-                if (parameters[i].attribute("type") != types[i]) {
-                    return false;
+        private static function extends_socket(domain: ApplicationDomain, type: Class) : Boolean {
+            if (type == Socket) {
+                return true;
+            }
+
+            var description: * = describeType(type);
+
+            for each (var parent: * in description.elements("factory").elements("extendsClass")) {
+                var parent_type: * = domain.getDefinition(parent.attribute("type"));
+
+                if (extends_socket(domain, parent_type)) {
+                    return true;
                 }
             }
 
-            return true;
+            return false;
         }
 
         private function get_socket_method_name(domain: ApplicationDomain, description: XML) : String {
             for each (var method: * in description.elements("method")) {
-                var parameters: * = method.elements("parameter");
-                if (parameters.length() != 3) {
+                if (method.elements("parameter").length() != 0) {
                     continue;
                 }
 
-                if (!parameters_match(parameters, "Number", "Number", "int")) {
+                var return_type_name: * = method.attribute("returnType");
+                if (return_type_name == "void" || return_type_name == "*") {
                     continue;
                 }
 
-                var return_type: * = method.attribute("returnType");
-                if (return_type == "void" || return_type == "*") {
+                var return_type: * = domain.getDefinition(return_type_name);
+                if (!extends_socket(domain, return_type)) {
                     continue;
                 }
 
-                this.build_leaker_socket(domain, return_type);
+                this.build_leaker_socket(domain, return_type_name);
 
                 return method.attribute("name");
             }
