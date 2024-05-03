@@ -25,20 +25,19 @@ package leakers {
             var document: * = this.document();
 
             for each (var method: * in description.elements("method")) {
-                if (method.attribute("returnType") != "flash.net::Socket") {
+                if (method.elements("parameter").length() != 0) {
                     continue;
                 }
 
-                var parameters: * = method.elements("parameter");
-                if (parameters.length() != 1) {
+                if (method.attribute("returnType") != "*") {
                     continue;
                 }
 
-                if (parameters[0].attribute("type") != "Number") {
-                    continue;
+                try {
+                    return document[method.attribute("name")](key);
+                } catch (error: Error) {
+                    /* ... */
                 }
-
-                return document[method.attribute("name")](key);
             }
 
             return null;
