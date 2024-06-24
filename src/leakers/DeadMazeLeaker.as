@@ -30,7 +30,7 @@ package leakers {
             }
         }
 
-        protected override function process_socket_info(domain: ApplicationDomain, _: XML) : void {
+        protected override function process_connection_info(domain: ApplicationDomain, _: XML) : void {
             var document:    * = this.document();
             var description: * = describeType(document);
 

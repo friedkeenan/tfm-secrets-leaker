@@ -344,7 +344,7 @@ package leakers {
             this.leaker_socket_class = this.game_domain().getDefinition("ServerboundLeakerSocket") as Class;
         }
 
-        protected function process_socket_info(domain: ApplicationDomain, description: XML) : void {
+        protected function process_connection_info(domain: ApplicationDomain, description: XML) : void {
             for each (var variable: * in description.elements("factory").elements("variable")) {
                 if (variable.attribute("type") == "flash.net::Socket") {
                     this.socket_prop_name = variable.attribute("name");
@@ -366,20 +366,6 @@ package leakers {
                         are the same object, so we just return the first
                         that we find.
                     */
-                    return variable.attribute("name");
-                }
-            }
-
-            return null;
-        }
-
-        private static function get_address_prop_name(description: XML) : String {
-            for each (var variable: * in description.elements("factory").elements("variable")) {
-                /*
-                    NOTE: There are two non-static properties which
-                    are strings, but they both hold the same value.
-                */
-                if (variable.attribute("type") == "String") {
                     return variable.attribute("name");
                 }
             }
@@ -440,15 +426,13 @@ package leakers {
                     continue;
                 }
 
-                this.process_socket_info(domain, description);
+                this.process_connection_info(domain, description);
 
-                var address_prop_name:         * = get_address_prop_name(description);
                 var possible_ports_prop_names: * = get_possible_ports_properties(description);
                 var instance_name:             * = get_connection_instance_name(description);
 
                 this.connection_class_info = {
                     klass:                     klass,
-                    address_prop_name:         address_prop_name,
                     possible_ports_prop_names: possible_ports_prop_names,
                     instance_name:             instance_name
                 };
@@ -465,6 +449,23 @@ package leakers {
 
         protected function set_connection_socket(instance: *, socket: Socket) : void {
             instance[this.socket_prop_name] = socket;
+        }
+
+        protected function get_connected_address(instance: *) : String {
+            var description: * = describeType(instance);
+
+            for each (var variable: * in description.elements("variable")) {
+                /*
+                    NOTE: There are multiple non-static String
+                    properties, but they hold the same value.
+                */
+
+                if (variable.attribute("type") == "String") {
+                    return instance[variable.attribute("name")];
+                }
+            }
+
+            return null;
         }
 
         private function try_replace_socket(event: Event) : void {
@@ -486,7 +487,7 @@ package leakers {
 
             this.removeEventListener(Event.ENTER_FRAME, this.try_replace_socket);
 
-            this.server_address = instance[this.connection_class_info.address_prop_name];
+            this.server_address = this.get_connected_address(instance);
 
             for each (var ports_name: * in this.connection_class_info.possible_ports_prop_names) {
                 var possible_ports: * = instance[ports_name];

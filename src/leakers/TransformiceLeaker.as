@@ -43,7 +43,7 @@ package leakers {
             return null;
         }
 
-        protected override function process_socket_info(domain: ApplicationDomain, _: XML) : void {
+        protected override function process_connection_info(domain: ApplicationDomain, _: XML) : void {
             var document:    * = this.document();
             var description: * = describeType(document);
 
@@ -79,6 +79,24 @@ package leakers {
                     return;
                 }
             }
+        }
+
+        protected override function get_connected_address(instance: *) : String {
+            var description: * = describeType(instance);
+
+            for each (var variable: * in description.elements("variable")) {
+                if (variable.attribute("type") != "String") {
+                    continue;
+                }
+
+                var value: * = instance[variable.attribute("name")];
+
+                if (value != "_nfs_801") {
+                    return value;
+                }
+            }
+
+            return null;
         }
 
         protected override function get_connection_socket(instance: *) : Socket {
