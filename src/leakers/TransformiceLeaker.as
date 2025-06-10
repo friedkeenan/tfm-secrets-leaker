@@ -7,8 +7,12 @@ package leakers {
     public class TransformiceLeaker extends Leaker {
         private var socket_dict_name: String;
 
-        public function TransformiceLeaker() {
-            super("http://www.transformice.com/Transformice.swf", true);
+        public function TransformiceLeaker(url: String = null) {
+            if (url == null) {
+                url = "http://www.transformice.com/Transformice.swf";
+            }
+
+            super(url, true);
         }
 
         private function get_socket_prop_name(description: XML, type_name: String) : void {
