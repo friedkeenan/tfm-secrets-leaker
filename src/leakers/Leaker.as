@@ -27,6 +27,7 @@ package leakers {
     import org.as3commons.bytecode.emit.event.AccessorBuilderEvent;
     import org.as3commons.bytecode.emit.impl.MethodBuilder;
     import org.as3commons.bytecode.emit.enum.MemberVisibility;
+    import flash.events.IOErrorEvent;
 
     public class Leaker extends Sprite {
         /*
@@ -385,6 +386,30 @@ package leakers {
             return possible_names;
         }
 
+        private static function get_connection_event_handler_names(description: XML) : Array {
+            var names: * = new Array();
+
+            for each (var method: * in description.elements("factory").elements("method")) {
+                var params: * = method.elements("parameter");
+
+                if (params.length() != 1) {
+                    continue;
+                }
+
+                if (params[0].attribute("type") != "flash.events::Event") {
+                    continue;
+                }
+
+                if (method.attribute("returnType") != "void") {
+                    continue;
+                }
+
+                names.push(method.attribute("name"));
+            }
+
+            return names;
+        }
+
         private function get_connection_class_info(event: Event) : void {
             var game: * = this.game();
 
@@ -429,11 +454,13 @@ package leakers {
                 this.process_connection_info(domain, description);
 
                 var possible_ports_prop_names: * = get_possible_ports_properties(description);
+                var event_handler_names:       * = get_connection_event_handler_names(description);
                 var instance_name:             * = get_connection_instance_name(description);
 
                 this.connection_class_info = {
                     klass:                     klass,
                     possible_ports_prop_names: possible_ports_prop_names,
+                    event_handler_names:       event_handler_names,
                     instance_name:             instance_name
                 };
 
@@ -481,11 +508,30 @@ package leakers {
             }
 
             var socket: * = this.get_connection_socket(instance);
-            if (!socket.hasEventListener(Event.CONNECT)) {
+            if (!socket.willTrigger(Event.CONNECT)) {
                 return;
             }
 
             this.removeEventListener(Event.ENTER_FRAME, this.try_replace_socket);
+
+            /*
+                We remove all the original I/O error handlers
+                so that the connection will not try to disturb
+                our socket in certain scenarios, like when there
+                is only one main port specified.
+            */
+            for each (var method_name: * in this.connection_class_info.event_handler_names) {
+                /* If there is no corresponding event listener, then this will do nothing. */
+                socket.removeEventListener(IOErrorEvent.IO_ERROR, instance[method_name]);
+            }
+
+            /*
+                We add a stub I/O error handler to
+                replace the old one. If we don't,
+                then an error will be thrown upon
+                an I/O error instead.
+            */
+            socket.addEventListener(IOErrorEvent.IO_ERROR, function (event: Event) : void {});
 
             this.server_address = this.get_connected_address(instance);
 
