@@ -124,5 +124,9 @@ package leakers {
         protected override function auth_key_return() : String {
             return "*";
         }
+
+        protected override function clientbound_client_verification_id() : Array {
+            return new Array(176, 247);
+        }
     }
 }

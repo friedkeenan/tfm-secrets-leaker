@@ -806,6 +806,10 @@ package leakers {
             return key;
         }
 
+        protected function clientbound_client_verification_id() : Array {
+            return new Array(176, 7);
+        }
+
         private function trace_secrets_and_quit(client_verification_template: String = null) : void {
             /* NOTE: We duplicate these lines for proper alignment. */
             if (client_verification_template != null) {
@@ -847,8 +851,9 @@ package leakers {
 
                 var client_verification_packet: * = new ByteArray();
 
-                client_verification_packet.writeByte(176);
-                client_verification_packet.writeByte(7);
+                var id: * = this.clientbound_client_verification_id();
+                client_verification_packet.writeByte(id[0]);
+                client_verification_packet.writeByte(id[1]);
 
                 client_verification_packet.writeInt(VERIFCATION_TOKEN);
 
